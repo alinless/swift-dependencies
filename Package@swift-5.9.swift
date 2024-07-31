@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 5.9
 
 import CompilerPluginSupport
 import PackageDescription
@@ -22,17 +22,18 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/pointfreeco/combine-schedulers", from: "1.0.2"),
-    .package(url: "https://github.com/pointfreeco/swift-clocks", from: "1.0.4"),
+    .package(url: "https://github.com/apple/swift-syntax", "509.0.0"..<"601.0.0"),
+    .package(url: "https://github.com/google/swift-benchmark", from: "0.1.0"),
+    .package(url: "https://github.com/pointfreeco/combine-schedulers", from: "1.0.0"),
+    .package(url: "https://github.com/pointfreeco/swift-clocks", from: "1.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.0.0"),
-    .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.2.2"),
-    .package(url: "https://github.com/swiftlang/swift-syntax", "509.0.0"..<"601.0.0-prerelease"),
+    .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.1.0"),
   ],
   targets: [
     .target(
       name: "DependenciesTestObserver",
       dependencies: [
-        .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
+        .product(name: "XCTestDynamicOverlay", package: "xctest-dynamic-overlay"),
       ]
     ),
     .target(
@@ -41,7 +42,6 @@ let package = Package(
         .product(name: "Clocks", package: "swift-clocks"),
         .product(name: "CombineSchedulers", package: "combine-schedulers"),
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
-        .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "XCTestDynamicOverlay", package: "xctest-dynamic-overlay"),
       ]
     ),
@@ -50,14 +50,12 @@ let package = Package(
       dependencies: [
         "Dependencies",
         "DependenciesMacros",
-        .product(name: "IssueReportingTestSupport", package: "xctest-dynamic-overlay"),
       ]
     ),
     .target(
       name: "DependenciesMacros",
       dependencies: [
         "DependenciesMacrosPlugin",
-        .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "XCTestDynamicOverlay", package: "xctest-dynamic-overlay"),
       ]
     ),
@@ -68,8 +66,14 @@ let package = Package(
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
       ]
     ),
-  ],
-  swiftLanguageVersions: [.v6]
+    .executableTarget(
+      name: "swift-dependencies-benchmark",
+      dependencies: [
+        "Dependencies",
+        .product(name: "Benchmark", package: "swift-benchmark"),
+      ]
+    ),
+  ]
 )
 
 #if !os(macOS) && !os(WASI)
@@ -104,3 +108,15 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0")
   )
 #endif
+
+for target in package.targets {
+  target.swiftSettings = target.swiftSettings ?? []
+  target.swiftSettings?.append(contentsOf: [
+    .enableExperimentalFeature("StrictConcurrency")
+  ])
+//  target.swiftSettings?.append(
+//    .unsafeFlags([
+//      "-enable-library-evolution",
+//    ])
+//  )
+}
